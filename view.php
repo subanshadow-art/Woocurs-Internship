@@ -1,0 +1,21 @@
+<?php
+include 'config.php';
+$search = trim($_GET['search'] ?? '');
+if ($search !== '') {
+    $sql = 'SELECT id, name, email, phone, created_at FROM entries WHERE name LIKE ? OR email LIKE ? ORDER BY id DESC';
+    $stmt = $conn->prepare($sql);
+    $like = '%' . $search . '%';
+    $stmt->bind_param('ss', $like, $like);
+    $stmt->execute();
+    $result = $stmt->get_result();
+} else {
+    $result = $conn->query('SELECT id, name, email, phone, created_at FROM entries ORDER BY id DESC');
+}
+function e($value) { return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8'); }
+?>
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>View Entries - Library Management System</title><link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"><script src="day5.js" defer></script><script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" defer></script></head><body><nav class="navbar navbar-expand-lg navbar-dark bg-dark"><!-- Mobile-friendly navigation --><div class="container-fluid"><a class="navbar-brand" href="index.html">Library Management System</a><button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#siteNav" aria-controls="siteNav" aria-expanded="false" aria-label="Toggle navigation"><span class="navbar-toggler-icon"></span></button><div class="collapse navbar-collapse" id="siteNav"><ul class="navbar-nav ms-auto"><li class="nav-item"><a class="nav-link" href="index.html">Home</a></li><li class="nav-item"><a class="nav-link" href="form.php">Form</a></li><li class="nav-item"><a class="nav-link" href="about.html">About</a></li><li class="nav-item"><a class="nav-link" href="contact.html">Contact</a></li><li class="nav-item"><a class="nav-link" href="view.php">View Entries</a></li></ul></div></div></nav><main class="container mt-5"><h2>All Entries</h2><?php if (isset($_GET['status']) && in_array($_GET['status'], ['updated','deleted'], true)): ?><div class="alert alert-success" role="alert">Entry <?= e($_GET['status']) ?> successfully!</div><?php endif; ?><form method="GET" class="mb-3"><input type="text" name="search" class="form-control" placeholder="Search by Name or Email" value="<?= e($search) ?>"></form>
+<div class="table-responsive"><table id="entriesTable" class="table table-bordered table-striped table-hover"><thead><tr><th>ID</th><th data-sort="1">Name ↕</th><th data-sort="2">Email ↕</th><th data-sort="3">Phone ↕</th><th>Created At</th><th>Actions</th></tr></thead><tbody>
+<?php if ($result->num_rows > 0): ?>
+<?php while ($row = $result->fetch_assoc()): ?><tr><td><?= e($row['id']) ?></td><td><?= e($row['name']) ?></td><td><?= e($row['email']) ?></td><td><?= e($row['phone']) ?></td><td><?= e($row['created_at']) ?></td><td class="text-nowrap"><a class="btn btn-primary btn-sm" href="update.php?id=<?= (int)$row['id'] ?>">Edit</a> <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deleteModal" data-id="<?= (int)$row['id'] ?>" data-name="<?= e($row['name']) ?>">Delete</button></td></tr><?php endwhile; ?>
+<?php else: ?><tr><td colspan="6">No entries found</td></tr><?php endif; ?>
+</tbody></table></div><div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalTitle" aria-hidden="true"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="deleteModalTitle">Confirm Delete</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div><div class="modal-body">Are you sure you want to delete <strong class="entry-label"></strong>?</div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button><form method="POST" action="delete.php"><input type="hidden" name="id" value=""><button type="submit" class="btn btn-danger">Yes, Delete</button></form></div></div></div></div><?php $conn->close(); ?></main><footer class="text-center mt-5">Developed by [Your Name] | 2025</footer></body></html>
